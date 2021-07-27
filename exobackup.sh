@@ -1,8 +1,8 @@
 #!/bin/bash
 
-if [ $# -ne 2 ]
+if [ $# -lt 2 ]
 then
-	echo "Usage: $0 INSTANCE_ID RCLONE_TARGET_CONFIG"	
+	echo "Usage: $0 INSTANCE_ID RCLONE_TARGET_CONFIG1 [RCLONE_TARGET_CONFIG2...]"
 	exit 1
 fi
 
@@ -10,14 +10,26 @@ fi
 # Config
 # -----------------------------
 INSTANCE_ID=$1
-RCLONE_TARGET_CONFIG=$2
+RCLONE_TARGET_CONFIGS="${@:2}"
 SNAPSHOTS_RETENTION_DAYS="${SNAPSHOTS_RETENTION_DAYS:-7}"
 RCLONE_DELETE_MIN_AGE="${RCLONE_DELETE_MIN_AGE:-30d}"
+# -----------------------------
 
+# -----------------------------
 # Vars
+# -----------------------------
 timestamp_snapshot_max=$(date --date="$SNAPSHOTS_RETENTION_DAYS day ago" "+%s")
-rclone_computed_target="${RCLONE_TARGET_CONFIG}/${INSTANCE_ID}/backup__$(date +%s)__${INSTANCE_ID}.qcow2"
 exo_date_pattern="%Y-%m-%dT%H:%M:%S+0000"
+# -----------------------------
+
+# -----------------------------
+# Functions
+# -----------------------------
+get_computed_target() {
+	echo $1/${INSTANCE_ID}/backup__$(date +%s)__${INSTANCE_ID}.qcow2
+	return 0
+}
+# -----------------------------
 
 # Check VM info
 exo vm show "$INSTANCE_ID" > /dev/null
@@ -52,9 +64,18 @@ snapshot_export_url=$(echo ${snapshot_export_info} | jq -r '.url')
 echo "Snapshot export OK"
 
 echo "Migrating snapshot with rclone"
-rclone copyurl "${snapshot_export_url}" "${rclone_computed_target}"
+for config in ${RCLONE_TARGET_CONFIGS}
+do
+	rclone_computed_target=$(get_computed_target "$config")
+	echo "> Migrating to $rclone_computed_target"
+	rclone copyurl "${snapshot_export_url}" "${rclone_computed_target}"
+done
 
 echo "Purging backups..."
-rclone delete $RCLONE_TARGET_CONFIG --min-age "$RCLONE_DELETE_MIN_AGE"
+for config in ${RCLONE_TARGET_CONFIGS}
+do
+	echo "> Purging $config"
+	rclone delete $config --min-age "$RCLONE_DELETE_MIN_AGE"
+done
 
 echo "All done."
