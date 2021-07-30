@@ -8,8 +8,7 @@ Install
 
 You must use [jq](https://stedolan.github.io/jq/), [rclone](https://rclone.org/) and [exo](https://github.com/exoscale/cli).
 
-On Debian-based systems: `apt-get install rclone jq`
-
+You must use rclone version **≥ 1.50**.
 
 Setup
 -----
@@ -40,10 +39,10 @@ Features
 --------
 
 - Create snapshot from VM
-- Auto purge old snapshots
 - Transform snapshots to runnable VM image
 - Exporting (thanks rclone) to another places (S3, Google Drive...)
-- Purge old backups
+- Purge old snapashots/backups
+- Push snapshot metadata if rclone remote config is S3
 
 
 Exemple
@@ -65,8 +64,20 @@ Backup VM to many targets:
 Environment variables
 ---------------------
 
-- `SNAPSHOTS_RETENTION_DAYS`
+### Paths
+
+- `EXO_PATH`
+- `RCLONE_PATH`
+
+### Exoscale related
+
+- `EXOSCALE_ACCOUNT`: Exoscale account, if many accounts are used. Check `exo config list`.
+- `EXOSCALE_SNAPSHOTS_RETENTION_DAYS`
+
+### Rclone config
+
 - `RCLONE_DELETE_MIN_AGE` (see [rclone documentation](https://rclone.org/filtering/#min-age-don-t-transfer-any-file-younger-than-this))
+- `RCLONE_EXTRA_FLAGS`: add flags to rclone
 
 License
 -------
